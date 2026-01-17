@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import logging
 import os
+import asyncio
 from dotenv import load_dotenv
 
 logging.basicConfig(
@@ -14,16 +15,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def get_token(token: str) -> str:
+def get_token(token_name: str) -> str:
     '''
     Recupera o token do ambiente.
     
     Args:
-        token (str): Nome da variável de ambiente do token.
+        token_name (str): Nome da variável de ambiente do token.
+        
     Returns:
-        str: O token.
+        str: O token recuperado, ou None se não encontrado.
     '''
-    return os.getenv(token)
+    return os.getenv(token_name)
 
 load_dotenv()
 
@@ -34,6 +36,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
+    '''
+    Evento disparado quando o bot está conectado e pronto.
+    '''
     logger.info(f"Conectado como {bot.user}")
 
     try:
@@ -42,47 +47,38 @@ async def on_ready():
     except Exception as e:
         logger.error(f"Erro ao sincronizar comandos: {e}")
 
-@bot.command()
-async def ping(ctx):
-    resposta = "Pong!"
-    logger.info(f"Comando {ctx.command.name} recebido. Respondendo com {resposta}!")
-    await ctx.send(resposta)
+async def load_cogs():
+    '''
+    Carrega dinamicamente todos os Cogs do diretório 'cogs'.
+    '''
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py'):
+            try:
+                await bot.load_extension(f'cogs.{filename[:-3]}')
+                logger.info(f'Carregado: {filename}')
+            except Exception as e:
+                logger.error(f'Falha ao carregar {filename}: {e}')
 
-@bot.command()
-async def fala(ctx):
-    resposta = "moura"
-    logger.info(f"Comando {ctx.command.name} recebido. Respondendo com {resposta}!")
-    await ctx.send(resposta)
-
-@bot.command()
-async def bolso(ctx):
-    resposta = "naro"
-    logger.info(f"Comando {ctx.command.name} recebido. Respondendo com {resposta}!")
-    await ctx.send(resposta)
-
-#@bot.tree.command(name="ping", description="Testa a latência do bot")
-#async def ping(interaction: discord.Interaction):
-#    await interaction.response.send_message("🏓 Pong!")
-
-#@bot.tree.command(name="fala", description="Descriçao do maior jogador de CS de todos os tempos")
-#async def fala(interaction: discord.Interaction):
-#    await interaction.response.send_message("moura")
-
-#@bot.tree.command(name="hello", description="Diz olá")
-#async def hello(interaction: discord.Interaction):
-#    await interaction.response.send_message(f"Olá, {interaction.user.mention}!")
-
-def main():
+async def main():
     '''
     Função principal para iniciar o bot.
     
-    Returns:
-        callable: Executa o bot.
+    Responsável por verificar o token, carregar os cogs e iniciar a conexão.
     '''
     logger.info("Iniciando o bot...")
     token = get_token("BOT_TOKEN")
+    
+    if not token:
+        logger.error("Token não encontrado!")
+        return
 
-    return bot.run(token)
+    async with bot:
+        await load_cogs()
+        await bot.start(token)
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        # ignore exit
+        pass
