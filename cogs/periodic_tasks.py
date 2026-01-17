@@ -36,8 +36,8 @@ class PeriodicTasks(commands.Cog):
         if not channel_id:
             return
 
-        # Chanve de 20% de enviar mensagem a cada check (pra não ficar chato)
-        if random.random() > 0.2:
+        # Chanve de 5% de enviar mensagem a cada check (pra não ficar chato)
+        if random.random() > 0.05:
             return
 
         channel = self.bot.get_channel(channel_id)
