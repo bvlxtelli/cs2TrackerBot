@@ -2,3 +2,6 @@ venv/
 .env
 cache/
 __pycache__/
+config.json
+last_matches.json
+users.json
